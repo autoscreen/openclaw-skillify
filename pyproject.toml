@@ -26,9 +26,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/YOUR_USERNAME/openclaw-skillify"
-Repository = "https://github.com/YOUR_USERNAME/openclaw-skillify"
-Issues = "https://github.com/YOUR_USERNAME/openclaw-skillify/issues"
+Homepage = "https://github.com/autoscreen/openclaw-skillify"
+Repository = "https://github.com/autoscreen/openclaw-skillify"
+Issues = "https://github.com/autoscreen/openclaw-skillify/issues"
 
 [project.optional-dependencies]
 dev = [

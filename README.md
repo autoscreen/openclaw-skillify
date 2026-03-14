@@ -134,7 +134,7 @@ Then from within nanobot, you can say things like "turn the Notion API into skil
 ## Development
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/skillifycode.git
+git clone https://github.com/autoscreen/openclaw-skillify.git
 cd skillifycode
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
