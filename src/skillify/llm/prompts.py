@@ -106,6 +106,9 @@ Rules:
 - Be concise — the agent is smart, only include non-obvious procedural knowledge.
 - Use imperative/infinitive form.
 - Do NOT create a "When to Use" section (that goes in frontmatter description).
+- ONLY use information explicitly provided in the user context below. Do NOT invent endpoint paths, parameter names, response schemas, model names, or any other API details not present in the context.
+- Use the exact Base URL provided in curl examples. If the base URL is '$BASE_URL', keep it as a variable — do NOT guess a URL.
+- If request body or response schemas are not provided for an endpoint, do NOT fabricate them. Only show the fields and structures that appear in the provided data.
 
 Return the raw markdown body (no frontmatter, no fences)."""
 

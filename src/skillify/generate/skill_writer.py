@@ -64,20 +64,28 @@ class SkillWriter:
         # Build a context string for the LLM
         endpoints_desc = []
         for ep in group.endpoints:
-            params_str = ""
+            parts = [f"  {ep.method} {ep.path} — {ep.summary or ep.description[:80]}"]
             if ep.parameters:
-                params_str = "\n    Parameters: " + ", ".join(
+                parts.append("    Parameters: " + ", ".join(
                     f"{p.name} ({p.type}, {'required' if p.required else 'optional'})"
                     for p in ep.parameters
-                )
-            endpoints_desc.append(
-                f"  {ep.method} {ep.path} — {ep.summary or ep.description[:80]}{params_str}"
-            )
+                ))
+            if ep.request_body_schema:
+                schema_str = json.dumps(ep.request_body_schema, indent=2)
+                if len(schema_str) > 1000:
+                    schema_str = schema_str[:1000] + "\n    ..."
+                parts.append(f"    Request body schema:\n    {schema_str}")
+            if ep.response_schema:
+                schema_str = json.dumps(ep.response_schema, indent=2)
+                if len(schema_str) > 1000:
+                    schema_str = schema_str[:1000] + "\n    ..."
+                parts.append(f"    Response schema:\n    {schema_str}")
+            endpoints_desc.append("\n".join(parts))
 
         user_prompt = (
             f"API: {spec.api_name}\n"
             f"Group: {group.display_name}\n"
-            f"Base URL: {spec.base_url or 'N/A'}\n"
+            f"Base URL: {spec.base_url or '$BASE_URL (must be configured by the user)'}\n"
             f"Auth: {self._describe_auth(auth)}\n"
             f"Inline all endpoints: {plan.inline_endpoints}\n"
             f"Has reference file: {plan.needs_reference_file}\n"

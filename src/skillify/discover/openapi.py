@@ -58,9 +58,16 @@ class OpenAPIDiscovery(DiscoverySource):
     def _parse_openapi3(self, doc: dict, source: str) -> APISpec:
         info = doc.get("info", {})
         servers = doc.get("servers", [])
-        base_url = servers[0]["url"] if servers else None
+        base_url = servers[0]["url"] if servers else _infer_base_url_from_source(source)
 
-        auth = self._extract_auth_v3(doc)
+        raw_title = info.get("title", "api")
+        if _is_generic_title(raw_title):
+            api_name = _infer_api_name_from_url(source) or "API"
+        else:
+            api_name = raw_title
+        api_slug = _slugify(api_name)
+
+        auth = self._extract_auth_v3(doc, api_name)
         endpoints = []
         tag_groups: dict[str, list[Endpoint]] = {}
 
@@ -78,14 +85,13 @@ class OpenAPIDiscovery(DiscoverySource):
 
         # Build groups from tags
         groups = []
-        api_slug = _slugify(info.get("title", "api"))
         for tag, eps in tag_groups.items():
             name = f"{api_slug}-{_slugify(tag)}"
             groups.append(
                 EndpointGroup(
                     name=name,
                     display_name=tag.replace("_", " ").title(),
-                    description=f"Interact with {tag} endpoints of the {info.get('title', 'API')}.",
+                    description=f"Interact with {tag} endpoints of the {api_name}.",
                     endpoints=eps,
                     tags=[tag],
                 )
@@ -94,7 +100,7 @@ class OpenAPIDiscovery(DiscoverySource):
         return APISpec(
             source=source,
             source_type="openapi",
-            api_name=info.get("title", "Unknown API"),
+            api_name=api_name,
             api_description=info.get("description", ""),
             base_url=base_url,
             version=info.get("version"),
@@ -109,9 +115,16 @@ class OpenAPIDiscovery(DiscoverySource):
         host = doc.get("host", "")
         base_path = doc.get("basePath", "")
         schemes = doc.get("schemes", ["https"])
-        base_url = f"{schemes[0]}://{host}{base_path}" if host else None
+        base_url = f"{schemes[0]}://{host}{base_path}" if host else _infer_base_url_from_source(source)
 
-        auth = self._extract_auth_v2(doc)
+        raw_title = info.get("title", "api")
+        if _is_generic_title(raw_title):
+            api_name = _infer_api_name_from_url(source) or "API"
+        else:
+            api_name = raw_title
+        api_slug = _slugify(api_name)
+
+        auth = self._extract_auth_v2(doc, api_name)
         endpoints = []
         tag_groups: dict[str, list[Endpoint]] = {}
 
@@ -128,14 +141,13 @@ class OpenAPIDiscovery(DiscoverySource):
                     tag_groups.setdefault(tag, []).append(ep)
 
         groups = []
-        api_slug = _slugify(info.get("title", "api"))
         for tag, eps in tag_groups.items():
             name = f"{api_slug}-{_slugify(tag)}"
             groups.append(
                 EndpointGroup(
                     name=name,
                     display_name=tag.replace("_", " ").title(),
-                    description=f"Interact with {tag} endpoints of the {info.get('title', 'API')}.",
+                    description=f"Interact with {tag} endpoints of the {api_name}.",
                     endpoints=eps,
                     tags=[tag],
                 )
@@ -144,7 +156,7 @@ class OpenAPIDiscovery(DiscoverySource):
         return APISpec(
             source=source,
             source_type="openapi",
-            api_name=info.get("title", "Unknown API"),
+            api_name=api_name,
             api_description=info.get("description", ""),
             base_url=base_url,
             version=info.get("version"),
@@ -253,16 +265,16 @@ class OpenAPIDiscovery(DiscoverySource):
             tags=op.get("tags", []),
         )
 
-    def _extract_auth_v3(self, doc: dict) -> AuthSpec:
+    def _extract_auth_v3(self, doc: dict, api_name: str | None = None) -> AuthSpec:
         components = doc.get("components", {})
         schemes = components.get("securitySchemes", {})
-        return self._auth_from_schemes(schemes)
+        return self._auth_from_schemes(schemes, api_name)
 
-    def _extract_auth_v2(self, doc: dict) -> AuthSpec:
+    def _extract_auth_v2(self, doc: dict, api_name: str | None = None) -> AuthSpec:
         schemes = doc.get("securityDefinitions", {})
-        return self._auth_from_schemes(schemes)
+        return self._auth_from_schemes(schemes, api_name)
 
-    def _auth_from_schemes(self, schemes: dict) -> AuthSpec:
+    def _auth_from_schemes(self, schemes: dict, api_name: str | None = None) -> AuthSpec:
         if not schemes:
             return AuthSpec()
 
@@ -275,7 +287,7 @@ class OpenAPIDiscovery(DiscoverySource):
             if http_scheme == "bearer":
                 return AuthSpec(
                     type=AuthType.BEARER_TOKEN,
-                    env_var=_suggest_env_var(name),
+                    env_var=_suggest_env_var(name, api_name),
                     header_name="Authorization",
                     header_prefix="Bearer",
                     description=scheme.get("description", "Bearer token authentication"),
@@ -292,20 +304,20 @@ class OpenAPIDiscovery(DiscoverySource):
             if location == "header":
                 return AuthSpec(
                     type=AuthType.API_KEY_HEADER,
-                    env_var=_suggest_env_var(name),
+                    env_var=_suggest_env_var(name, api_name),
                     header_name=param_name,
                     description=scheme.get("description", f"API key in {param_name} header"),
                 )
             return AuthSpec(
                 type=AuthType.API_KEY_QUERY,
-                env_var=_suggest_env_var(name),
+                env_var=_suggest_env_var(name, api_name),
                 description=scheme.get("description", f"API key as query parameter: {param_name}"),
             )
 
         if scheme_type == "oauth2":
             return AuthSpec(
                 type=AuthType.OAUTH2,
-                env_var=_suggest_env_var(name),
+                env_var=_suggest_env_var(name, api_name),
                 description=scheme.get("description", "OAuth2 authentication"),
             )
 
@@ -363,11 +375,79 @@ def _schema_type(schema: dict) -> str:
     return schema.get("type", "string")
 
 
-def _suggest_env_var(name: str) -> str:
-    """Suggest an environment variable name from a security scheme name."""
+_GENERIC_TITLES = frozenset({
+    "fastapi", "api", "swagger", "openapi", "rest api", "my api",
+    "server", "app", "application", "unknown api", "default", "",
+})
+
+
+def _is_generic_title(title: str) -> bool:
+    """Return True if the title is a framework default or too generic."""
+    return title.strip().lower() in _GENERIC_TITLES
+
+
+def _infer_api_name_from_url(source: str) -> str | None:
+    """Infer a human-readable API name from a URL.
+
+    e.g. "https://api.yutori.com/openapi.json" -> "Yutori API"
+    """
+    if not source.startswith(("http://", "https://")):
+        return None
+    parsed = urlparse(source)
+    hostname = parsed.hostname or ""
+    parts = hostname.split(".")
+    ignore = {"www", "api", "docs", "dev", "staging", "com", "org", "net", "io", "co", "app"}
+    meaningful = [p for p in parts if p.lower() not in ignore and len(p) > 1]
+    if not meaningful and len(parts) >= 2:
+        meaningful = [parts[-2]]
+    if not meaningful:
+        return None
+    name = meaningful[0].capitalize()
+    return f"{name} API"
+
+
+def _infer_base_url_from_source(source: str) -> str | None:
+    """Infer a base URL from the source URL by stripping the spec filename."""
+    if not source.startswith(("http://", "https://")):
+        return None
+    parsed = urlparse(source)
+    path = parsed.path
+    if "/" in path and path != "/":
+        last_segment = path.rsplit("/", 1)[-1].lower()
+        if any(last_segment.endswith(ext) for ext in (".json", ".yaml", ".yml")):
+            path = path.rsplit("/", 1)[0]
+    base = f"{parsed.scheme}://{parsed.netloc}{path}"
+    return base.rstrip("/") or f"{parsed.scheme}://{parsed.netloc}"
+
+
+_GENERIC_SCHEME_NAMES = frozenset({
+    "apikeyauth", "apikey", "api_key", "bearerauth", "bearer",
+    "httpbearer", "http_bearer", "oauth2", "basicauth", "basic",
+    "authorization", "auth", "security", "token",
+})
+
+
+def _suggest_env_var(name: str, api_name: str | None = None) -> str:
+    """Suggest an environment variable name from a security scheme name.
+
+    If the scheme name is generic and api_name is provided, uses the
+    api_name for a more descriptive variable name.
+    """
     import re
 
+    normalized = re.sub(r"[^a-zA-Z0-9]", "", name).lower()
+    if normalized in _GENERIC_SCHEME_NAMES and api_name:
+        base = re.sub(r"\s*api\s*$", "", api_name, flags=re.IGNORECASE).strip()
+        base = re.sub(r"[^a-zA-Z0-9]+", "_", base).strip("_").upper()
+        if base:
+            name = base
+
+    # Split camelCase/PascalCase
+    name = re.sub(r"([a-z])([A-Z])", r"\1_\2", name)
+    name = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name)
     name = re.sub(r"[^a-zA-Z0-9]", "_", name).upper()
+    name = re.sub(r"_+", "_", name).strip("_")
+
     if not name.endswith(("_KEY", "_TOKEN", "_SECRET")):
         name += "_API_KEY"
     return name
