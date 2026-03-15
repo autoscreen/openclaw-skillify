@@ -57,6 +57,13 @@ For each endpoint found, extract:
 - description (longer description if available)
 - parameters (name, location, type, required, description)
 
+IMPORTANT: The base_url must be the actual API server URL where requests are sent, NOT the \
+documentation website URL. Documentation is often hosted on a different domain (e.g., \
+docs.example.com) than the API itself (e.g., api.example.com). Look for the API host in \
+curl examples, code snippets, or "Base URL" sections within the documentation text. \
+If the documentation URL is provided in the user message, do NOT use that domain as the \
+base_url unless the API is genuinely served from the same host.
+
 Return JSON matching this schema:
 {
   "api_name": "Name of the API",
@@ -101,7 +108,9 @@ Rules:
 - Start with an H1 heading matching the display name.
 - Include a brief auth/setup section if auth is required.
 - Show curl-based examples for key endpoints.
-- Use $ENV_VAR for secrets, never hardcode values.
+- Never hardcode secrets. The Auth line in the user context contains a "Load key:" command — \
+use it verbatim in the Authentication section to show how to load the key into a shell variable. \
+In subsequent curl examples, just use $VAR_NAME (the variable set by the load command).
 - Keep under 400 lines. For groups with >8 endpoints, only show the most important ones and reference the full list.
 - Be concise — the agent is smart, only include non-obvious procedural knowledge.
 - Use imperative/infinitive form.

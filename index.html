@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skillify - Turn Any API Into Agent Skills</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --border: #1e1e2e;
+      --text: #e2e2ef;
+      --muted: #8888a0;
+      --accent: #7c5cfc;
+      --accent-glow: #7c5cfc33;
+      --green: #34d399;
+      --orange: #fb923c;
+      --pink: #f472b6;
+      --cyan: #22d3ee;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Subtle grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Nav */
+    nav {
+      padding: 20px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    .logo span { color: var(--accent); }
+
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    nav a:hover { color: var(--text); }
+
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 100px 0 80px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: var(--accent-glow);
+      border: 1px solid var(--accent);
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: var(--accent);
+      margin-bottom: 24px;
+      letter-spacing: 0.02em;
+    }
+
+    h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+
+    h1 .gradient {
+      background: linear-gradient(135deg, var(--accent), var(--pink), var(--orange));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 40px;
+    }
+
+    .cta-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      background: #6b4ae8;
+      box-shadow: 0 0 30px var(--accent-glow);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--muted);
+      background: var(--surface);
+    }
+
+    /* Terminal */
+    .terminal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin: 60px auto;
+      max-width: 700px;
+      overflow: hidden;
+    }
+
+    .terminal-bar {
+      padding: 12px 16px;
+      background: #0e0e16;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    .terminal-dot:nth-child(1) { background: #ff5f57; }
+    .terminal-dot:nth-child(2) { background: #febc2e; }
+    .terminal-dot:nth-child(3) { background: #28c840; }
+
+    .terminal-body {
+      padding: 20px 24px;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.85rem;
+      line-height: 1.8;
+    }
+
+    .terminal-body .prompt { color: var(--green); }
+    .terminal-body .cmd { color: var(--text); }
+    .terminal-body .flag { color: var(--cyan); }
+    .terminal-body .url { color: var(--orange); }
+    .terminal-body .output { color: var(--muted); }
+    .terminal-body .success { color: var(--green); }
+
+    /* How it works */
+    .section {
+      padding: 80px 0;
+    }
+
+    .section-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .section-desc {
+      color: var(--muted);
+      font-size: 1.05rem;
+      margin-bottom: 48px;
+      max-width: 600px;
+    }
+
+    /* Pipeline */
+    .pipeline {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .pipe-step {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: border-color 0.2s;
+    }
+
+    .pipe-step:hover { border-color: var(--accent); }
+
+    .pipe-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: var(--accent-glow);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .pipe-content h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .pipe-content p {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .pipe-arrow {
+      text-align: center;
+      color: var(--border);
+      font-size: 1.2rem;
+      padding: 4px 0;
+    }
+
+    /* Sources grid */
+    .sources-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .source-card {
+      padding: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: border-color 0.2s;
+    }
+
+    .source-card:hover { border-color: var(--accent); }
+
+    .source-card h3 {
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .source-card p {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .source-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--accent-glow);
+      border-radius: 4px;
+      font-size: 0.7rem;
+      color: var(--accent);
+      margin-top: 8px;
+      font-family: monospace;
+    }
+
+    /* Install section */
+    .install-section {
+      text-align: center;
+      padding: 80px 0 100px;
+    }
+
+    .install-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 32px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .install-box h3 {
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+    }
+
+    .install-cmd {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 20px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.9rem;
+      color: var(--green);
+      text-align: left;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .install-cmd .dollar { color: var(--muted); margin-right: 8px; }
+
+    .install-note {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    /* Features row */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 48px;
+    }
+
+    .feature {
+      padding: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      text-align: left;
+    }
+
+    .feature-icon {
+      font-size: 1.5rem;
+      margin-bottom: 12px;
+    }
+
+    .feature h3 {
+      font-size: 0.95rem;
+      margin-bottom: 6px;
+    }
+
+    .feature p {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      h1 { font-size: 2.2rem; }
+      .subtitle { font-size: 1rem; }
+      .sources-grid { grid-template-columns: 1fr; }
+      .features { grid-template-columns: 1fr; }
+      .terminal-body { font-size: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <nav>
+    <a href="#" class="logo">skillify<span>.</span></a>
+    <div class="nav-links">
+      <a href="#how-it-works">How It Works</a>
+      <a href="#sources">Sources</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/autoscreen/openclaw-skillify">GitHub</a>
+    </div>
+  </nav>
+</div>
+
+<div class="container">
+  <section class="hero">
+    <div class="badge">Open Source &middot; OpenClaw Compatible</div>
+    <h1>Turn any API into<br><span class="gradient">agent skills</span></h1>
+    <p class="subtitle">
+      Skillify discovers API endpoints, groups them intelligently, and generates
+      ready-to-use skill directories for AI agents. One command. Any API.
+    </p>
+    <div class="cta-group">
+      <a href="#install" class="btn btn-primary">Get Started</a>
+      <a href="https://github.com/autoscreen/openclaw-skillify" class="btn btn-ghost">View on GitHub</a>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+      </div>
+      <div class="terminal-body">
+        <div><span class="prompt">$</span> <span class="cmd">skillify run</span> <span class="url">https://api.yutori.com/openapi.json</span> <span class="flag">--install</span></div>
+        <div><span class="output">Discovering API from: https://api.yutori.com/openapi.json</span></div>
+        <div><span class="success">Found 147 endpoints in 11 groups</span></div>
+        <div><span class="output">Generating skills...</span></div>
+        <div>&nbsp;</div>
+        <div><span class="success">Generated 11 skills:</span></div>
+        <div><span class="output">  - yutori-api-research/</span></div>
+        <div><span class="output">  - yutori-api-scouting/</span></div>
+        <div><span class="output">  - yutori-api-analytics/</span></div>
+        <div><span class="output">  - yutori-api-billing/</span></div>
+        <div><span class="output">  - ... (7 more)</span></div>
+        <div>&nbsp;</div>
+        <div><span class="success">Installed to ~/.nanobot/workspace/skills/</span></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="container">
+  <section class="section" id="how-it-works">
+    <div class="section-label">How It Works</div>
+    <h2>API to skills in seconds</h2>
+    <p class="section-desc">
+      Skillify reads your API surface, understands its structure, and generates
+      skills that any OpenClaw-compatible agent can use immediately.
+    </p>
+
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">1</div>
+        <div class="pipe-content">
+          <h3>Discover</h3>
+          <p>Point skillify at an OpenAPI spec, GraphQL schema, HTML docs, or Python package. It extracts every endpoint automatically.</p>
+        </div>
+      </div>
+      <div class="pipe-arrow">&darr;</div>
+      <div class="pipe-step">
+        <div class="pipe-num">2</div>
+        <div class="pipe-content">
+          <h3>Analyze &amp; Group</h3>
+          <p>Endpoints are grouped into logical skills by resource and domain. An editable JSON spec lets you fine-tune groupings before generation.</p>
+        </div>
+      </div>
+      <div class="pipe-arrow">&darr;</div>
+      <div class="pipe-step">
+        <div class="pipe-num">3</div>
+        <div class="pipe-content">
+          <h3>Generate</h3>
+          <p>Each group becomes a skill directory with SKILL.md, references, and auth scripts. Ready to drop into your agent's workspace.</p>
+        </div>
+      </div>
+      <div class="pipe-arrow">&darr;</div>
+      <div class="pipe-step">
+        <div class="pipe-num">4</div>
+        <div class="pipe-content">
+          <h3>Install &amp; Use</h3>
+          <p>Skills install directly into nanobot with <code>--install</code>. Your agent can immediately call any API endpoint through natural conversation.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="container">
+  <section class="section" id="sources">
+    <div class="section-label">Supported Sources</div>
+    <h2>Works with what you have</h2>
+    <p class="section-desc">
+      No matter how your API is documented, skillify can work with it.
+    </p>
+
+    <div class="sources-grid">
+      <div class="source-card">
+        <h3>OpenAPI / Swagger</h3>
+        <p>Full support for OpenAPI 3.x and Swagger 2.0 specs. Deterministic parsing, no LLM needed.</p>
+        <span class="source-tag">--source-type openapi</span>
+      </div>
+      <div class="source-card">
+        <h3>GraphQL</h3>
+        <p>Introspect any GraphQL endpoint or parse .graphql schema files directly.</p>
+        <span class="source-tag">--source-type graphql</span>
+      </div>
+      <div class="source-card">
+        <h3>HTML / Markdown Docs</h3>
+        <p>AI-powered extraction from any documentation page. Just point it at the URL.</p>
+        <span class="source-tag">--source-type html</span>
+      </div>
+      <div class="source-card">
+        <h3>Python Packages</h3>
+        <p>Discover API surfaces from installed Python packages via introspection.</p>
+        <span class="source-tag">--source-type python</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="container">
+  <section class="section">
+    <div class="section-label">Built For Agents</div>
+    <h2>Skills that just work</h2>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">&#x1f510;</div>
+        <h3>Secure by Default</h3>
+        <p>API keys are stored locally and loaded at runtime. Secrets are never hardcoded in skill files.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#x1f4e6;</div>
+        <h3>Progressive Disclosure</h3>
+        <p>Large APIs use reference files to keep skill context lean. Agents load details only when needed.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#x2699;&#xfe0f;</div>
+        <h3>Key Management</h3>
+        <p>Built-in <code>skillify keys</code> commands to store, list, and manage API keys for generated skills.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#x1f4dd;</div>
+        <h3>Editable Specs</h3>
+        <p>The intermediate JSON spec is human-editable. Rename skills, adjust groups, or remove endpoints before generating.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#x1f916;</div>
+        <h3>Self-Hosted Skill</h3>
+        <p>Skillify ships as a nanobot skill itself. Generate new skills from inside your agent via natural language.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#x26a1;</div>
+        <h3>Any LLM</h3>
+        <p>Powered by litellm. Use Anthropic, OpenAI, OpenRouter, or any compatible provider.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="container">
+  <section class="install-section" id="install">
+    <div class="section-label">Get Started</div>
+    <h2>Install in seconds</h2>
+
+    <div class="install-box">
+      <h3>Install with pip</h3>
+      <div class="install-cmd">
+        <span class="dollar">$</span> pip install openclaw-skillify
+      </div>
+      <p class="install-note">Requires Python 3.11+</p>
+    </div>
+
+    <div class="install-box" style="margin-top: 16px;">
+      <h3>Or install with uv</h3>
+      <div class="install-cmd">
+        <span class="dollar">$</span> uv tool install openclaw-skillify
+      </div>
+      <p class="install-note">Installs as a standalone CLI tool</p>
+    </div>
+
+    <div class="install-box" style="margin-top: 16px;">
+      <h3>Then generate your first skills</h3>
+      <div class="install-cmd">
+        <span class="dollar">$</span> skillify run https://api.example.com/openapi.json --install
+      </div>
+      <p class="install-note">Discovers, groups, generates, and installs to nanobot in one step</p>
+    </div>
+
+    <div class="install-box" style="margin-top: 16px;">
+      <h3>Or use inside nanobot</h3>
+      <div class="install-cmd" style="color: var(--cyan);">
+        <span class="dollar" style="color: var(--muted);">$</span> cp -r skill/skillify ~/.nanobot/workspace/skills/
+      </div>
+      <p class="install-note">Then ask your agent: "Turn the Stripe API into skills"</p>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://github.com/autoscreen/openclaw-skillify">openclaw-skillify</a>
+      &middot; MIT License &middot; Built for
+      <a href="https://github.com/openclaw/openclaw">OpenClaw</a> &amp;
+      <a href="https://github.com/HKUDS/nanobot">nanobot</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

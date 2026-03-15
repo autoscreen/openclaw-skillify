@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from skillify.generate.planner import SkillPlan
+from skillify.keys import LOAD_KEY_CMD
 from skillify.llm.client import SkillifyLLM
 from skillify.llm.prompts import EMOJI_SYSTEM, SKILL_BODY_SYSTEM
 from skillify.models import APISpec, AuthType, SkillOutput
@@ -30,11 +31,6 @@ class SkillWriter:
 
         # Build metadata
         nanobot_meta: dict = {"emoji": emoji}
-        requires: dict = {}
-        if auth.env_var:
-            requires["env"] = [auth.env_var]
-        if requires:
-            nanobot_meta["requires"] = requires
         metadata_json = {"nanobot": nanobot_meta}
 
         # Build frontmatter
@@ -121,14 +117,31 @@ class SkillWriter:
     def _describe_auth(self, auth) -> str:
         if auth.type == AuthType.NONE:
             return "None"
+        env_var = auth.env_var or "API_KEY"
+        load_cmd = LOAD_KEY_CMD.format(key_name=env_var)
         if auth.type == AuthType.BEARER_TOKEN:
-            return f"Bearer token in {auth.header_name or 'Authorization'} header, env var: ${auth.env_var or 'API_TOKEN'}"
+            header = auth.header_name or "Authorization"
+            prefix = auth.header_prefix or "Bearer"
+            return (
+                f"{prefix} token in {header} header. "
+                f"Load key: {load_cmd}"
+            )
         if auth.type == AuthType.API_KEY_HEADER:
-            return f"API key in {auth.header_name or 'X-API-Key'} header, env var: ${auth.env_var or 'API_KEY'}"
+            header = auth.header_name or "X-API-Key"
+            return (
+                f"API key in {header} header. "
+                f"Load key: {load_cmd}"
+            )
         if auth.type == AuthType.API_KEY_QUERY:
-            return f"API key as query parameter, env var: ${auth.env_var or 'API_KEY'}"
+            return (
+                f"API key as query parameter. "
+                f"Load key: {load_cmd}"
+            )
         if auth.type == AuthType.BASIC_AUTH:
             return "Basic authentication"
         if auth.type == AuthType.OAUTH2:
-            return f"OAuth2, env var: ${auth.env_var or 'OAUTH_TOKEN'}"
+            return (
+                f"OAuth2. "
+                f"Load key: {load_cmd}"
+            )
         return str(auth.type)

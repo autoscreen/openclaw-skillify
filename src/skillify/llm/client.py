@@ -10,7 +10,7 @@ from litellm import acompletion
 
 T = TypeVar("T", bound=BaseModel)
 
-DEFAULT_MODEL = "anthropic/claude-sonnet-4-5"
+DEFAULT_MODEL = "openrouter/anthropic/claude-sonnet-4-5"
 
 
 def _resolve_model(model: str | None = None) -> str:

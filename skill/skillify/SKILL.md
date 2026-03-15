@@ -1,6 +1,6 @@
 ---
 name: skillify
-description: "Generate OpenClaw/nanobot skills from any API surface. Discover APIs from OpenAPI specs, GraphQL schemas, HTML documentation, or Python packages, then generate well-structured skills with proper frontmatter, progressive disclosure, and helper scripts. Use when: (1) creating skills for a new API, (2) converting API docs to agent skills, (3) bulk-generating skills from an OpenAPI spec, or (4) the user asks to turn an API into skills."
+description: "Generate OpenClaw/nanobot skills from any API surface, and manage API keys for those skills. Discover APIs from OpenAPI specs, GraphQL schemas, HTML documentation, or Python packages, then generate well-structured skills with proper frontmatter, progressive disclosure, and helper scripts. Use when: (1) creating skills for a new API, (2) converting API docs to agent skills, (3) bulk-generating skills from an OpenAPI spec, (4) the user asks to turn an API into skills, or (5) the user wants to set, list, or remove an API key for a skill."
 metadata: {"nanobot":{"emoji":"🔧","requires":{"bins":["skillify"]}}}
 ---
 
@@ -50,8 +50,36 @@ Add `--install` to copy directly to `~/.nanobot/workspace/skills/`.
 - `-m, --model`: LLM model for AI-aided steps. Default: reads from `SKILLIFY_MODEL` env var.
 - `--install`: Copy generated skills to nanobot workspace.
 
+## API Key Management
+
+Generated skills load API keys from `~/.nanobot/workspace/keys.json` at runtime. Use `skillify keys` to manage them.
+
+### Store a key
+
+```bash
+skillify keys set YUTORI_API_KEY "yt_abc123..."
+```
+
+### List stored keys (masked)
+
+```bash
+skillify keys list
+```
+
+### Retrieve a key
+
+```bash
+skillify keys get YUTORI_API_KEY
+```
+
+### Remove a key
+
+```bash
+skillify keys remove YUTORI_API_KEY
+```
+
 ## Tips
 
 - For large APIs (100+ endpoints), review the spec JSON and adjust groupings before generating.
-- Generated skills use `$ENV_VAR` references for API keys — never hardcoded secrets.
+- Generated skills load API keys from `~/.nanobot/workspace/keys.json` — use `skillify keys set` to configure them.
 - After installing skills, start a new nanobot session to load them.

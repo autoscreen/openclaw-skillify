@@ -45,9 +45,17 @@ class HTMLDocsDiscovery(DiscoverySource):
             auth: dict = Field(default_factory=dict)
             endpoints: list[dict] = Field(default_factory=list)
 
+        source_hint = ""
+        if source.startswith(("http://", "https://")):
+            source_hint = (
+                f"\n\nDocumentation source URL: {source}\n"
+                "Note: This is the docs URL, NOT necessarily the API base URL. "
+                "Extract the actual API base URL from the documentation content.\n"
+            )
+
         result = await self.llm.structured_completion(
             system=HTML_EXTRACTION_SYSTEM,
-            user=f"Extract API endpoints from this documentation:\n\n{text}",
+            user=f"Extract API endpoints from this documentation:{source_hint}\n\n{text}",
             response_model=ExtractedAPI,
         )
 

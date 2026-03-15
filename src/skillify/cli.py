@@ -16,6 +16,8 @@ app = typer.Typer(
     help="Turn any API surface into OpenClaw/nanobot skills.",
     no_args_is_help=True,
 )
+keys_app = typer.Typer(help="Manage API keys for generated skills.")
+app.add_typer(keys_app, name="keys")
 console = Console()
 
 
@@ -34,6 +36,9 @@ def discover(
     model: str = typer.Option(
         None, "-m", "--model", help="LLM model for AI-aided steps"
     ),
+    base_url: str = typer.Option(
+        None, "--base-url", help="Override the discovered API base URL"
+    ),
 ) -> None:
     """Discover an API surface and output a spec JSON file."""
     from skillify.discover import discover as _discover
@@ -41,6 +46,8 @@ def discover(
     console.print(f"[bold]Discovering API from:[/bold] {source}")
 
     spec = asyncio.run(_discover(source, source_type=source_type, model=model))
+    if base_url:
+        spec.base_url = base_url.rstrip("/")
 
     # Write spec
     out_path = Path(output)
@@ -152,6 +159,9 @@ def run(
     install: bool = typer.Option(
         False, "--install", help="Install to ~/.nanobot/workspace/skills/"
     ),
+    base_url: str = typer.Option(
+        None, "--base-url", help="Override the discovered API base URL"
+    ),
 ) -> None:
     """Discover an API and generate skills in one step."""
     from skillify.discover import discover as _discover
@@ -159,6 +169,8 @@ def run(
 
     console.print(f"[bold]Discovering API from:[/bold] {source}")
     spec = asyncio.run(_discover(source, source_type=source_type, model=model))
+    if base_url:
+        spec.base_url = base_url.rstrip("/")
 
     console.print(
         f"[green]Found {len(spec.endpoints)} endpoints in {len(spec.groups)} groups[/green]"
@@ -174,6 +186,59 @@ def run(
         console.print(f"  - {output_dir}/{s.name}/")
     if install:
         console.print("\n[green]Installed to ~/.nanobot/workspace/skills/[/green]")
+
+
+@keys_app.command("set")
+def keys_set(
+    name: str = typer.Argument(help="Key name (e.g. YUTORI_API_KEY)"),
+    value: str = typer.Argument(help="Key value"),
+) -> None:
+    """Store an API key."""
+    from skillify.keys import set_key
+
+    set_key(name, value)
+    console.print(f"[green]Stored {name}[/green]")
+
+
+@keys_app.command("get")
+def keys_get(
+    name: str = typer.Argument(help="Key name"),
+) -> None:
+    """Retrieve an API key."""
+    from skillify.keys import get_key
+
+    value = get_key(name)
+    if value is None:
+        console.print(f"[red]Key {name} not found[/red]")
+        raise typer.Exit(1)
+    console.print(value)
+
+
+@keys_app.command("list")
+def keys_list() -> None:
+    """List all stored API keys (masked)."""
+    from skillify.keys import list_keys
+
+    keys = list_keys()
+    if not keys:
+        console.print("[dim]No keys stored[/dim]")
+        return
+    for name, masked in keys.items():
+        console.print(f"  {name} = {masked}")
+
+
+@keys_app.command("remove")
+def keys_remove(
+    name: str = typer.Argument(help="Key name to remove"),
+) -> None:
+    """Remove a stored API key."""
+    from skillify.keys import remove_key
+
+    if remove_key(name):
+        console.print(f"[green]Removed {name}[/green]")
+    else:
+        console.print(f"[red]Key {name} not found[/red]")
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":
