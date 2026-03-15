@@ -8,6 +8,26 @@ metadata: {"nanobot":{"emoji":"🔧","requires":{"bins":["skillify"]}}}
 
 Generate OpenClaw skills from API surfaces.
 
+## First-Time Setup
+
+Before generating skills, an LLM API key must be configured. Check if one is already stored:
+
+```bash
+skillify keys list
+```
+
+If no LLM key is stored (e.g., `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`), ask the user for one and store it:
+
+```bash
+skillify keys set OPENROUTER_API_KEY "sk-or-v1-..."
+```
+
+Skillify auto-detects which provider to use based on which key is stored. To override the model:
+
+```bash
+skillify keys set SKILLIFY_MODEL "openrouter/anthropic/claude-sonnet-4-5"
+```
+
 ## Quick Start
 
 Discover and generate in one step:
@@ -47,16 +67,18 @@ Add `--install` to copy directly to `~/.nanobot/workspace/skills/`.
 ## Options
 
 - `-t, --source-type`: Force source type (`openapi`, `graphql`, `html`, `python`). Default: auto-detect.
-- `-m, --model`: LLM model for AI-aided steps. Default: reads from `SKILLIFY_MODEL` env var.
+- `-m, --model`: LLM model for AI-aided steps.
+- `--base-url`: Override the discovered API base URL.
 - `--install`: Copy generated skills to nanobot workspace.
 
 ## API Key Management
 
-Skillify stores all API keys in `~/.nanobot/workspace/keys.json`. This includes both:
-- **LLM keys** used by skillify itself for AI-aided discovery and generation (e.g., `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`)
+Skillify stores all configuration in `~/.nanobot/workspace/keys.json`. This includes:
+- **LLM keys** used by skillify itself (e.g., `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`)
+- **Model override** (`SKILLIFY_MODEL`) to control which LLM model skillify uses
 - **Service keys** used by generated skills at runtime (e.g., `YUTORI_API_KEY`)
 
-Skillify automatically loads stored keys as needed. Environment variables take precedence over stored keys.
+Skillify auto-detects the provider and model from whichever LLM key is stored. Environment variables always take precedence over stored keys.
 
 ### Store a key
 
@@ -85,6 +107,7 @@ skillify keys remove YUTORI_API_KEY
 
 ## Tips
 
+- Before generating, always check `skillify keys list` to ensure an LLM API key is configured.
 - For large APIs (100+ endpoints), review the spec JSON and adjust groupings before generating.
 - Generated skills load API keys from `~/.nanobot/workspace/keys.json` — use `skillify keys set` to configure them.
 - After installing skills, start a new nanobot session to load them.

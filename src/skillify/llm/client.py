@@ -10,28 +10,43 @@ from litellm import acompletion
 
 T = TypeVar("T", bound=BaseModel)
 
-DEFAULT_MODEL = "anthropic/claude-sonnet-4-5"
+_FALLBACK_MODEL = "anthropic/claude-sonnet-4-5"
 
-# API key env vars that litellm recognises, mapped to the key name
-# we store in keys.json.
-_KEY_ENV_VARS = [
-    "ANTHROPIC_API_KEY",
-    "OPENAI_API_KEY",
-    "OPENROUTER_API_KEY",
-    "GEMINI_API_KEY",
-    "DEEPSEEK_API_KEY",
-    "GROQ_API_KEY",
+# API key env vars that litellm recognises, in priority order for
+# auto-detecting which provider to use.
+_PROVIDER_KEYS = [
+    ("ANTHROPIC_API_KEY", "anthropic/claude-sonnet-4-5"),
+    ("OPENROUTER_API_KEY", "openrouter/anthropic/claude-sonnet-4-5"),
+    ("OPENAI_API_KEY", "openai/gpt-4o"),
+    ("GEMINI_API_KEY", "gemini/gemini-2.0-flash"),
+    ("DEEPSEEK_API_KEY", "deepseek/deepseek-chat"),
+    ("GROQ_API_KEY", "groq/llama-3.3-70b-versatile"),
 ]
 
 
 def _resolve_model(model: str | None = None) -> str:
-    """Resolve model from arg, env vars, or default."""
+    """Resolve model from arg → env → keys.json → auto-detect from available key."""
     if model:
         return model
-    return os.environ.get(
-        "SKILLIFY_MODEL",
-        os.environ.get("LITELLM_MODEL", DEFAULT_MODEL),
-    )
+
+    # Check env var
+    from_env = os.environ.get("SKILLIFY_MODEL") or os.environ.get("LITELLM_MODEL")
+    if from_env:
+        return from_env
+
+    # Check keys.json for SKILLIFY_MODEL
+    from skillify.keys import get_key
+
+    stored_model = get_key("SKILLIFY_MODEL")
+    if stored_model:
+        return stored_model
+
+    # Auto-detect from whichever provider key is available
+    for env_var, default_model in _PROVIDER_KEYS:
+        if os.environ.get(env_var):
+            return default_model
+
+    return _FALLBACK_MODEL
 
 
 def _load_api_keys_from_store() -> None:
@@ -43,7 +58,7 @@ def _load_api_keys_from_store() -> None:
     from skillify.keys import _load
 
     stored = _load()
-    for env_var in _KEY_ENV_VARS:
+    for env_var, _ in _PROVIDER_KEYS:
         if env_var not in os.environ and env_var in stored:
             os.environ[env_var] = stored[env_var]
 
