@@ -52,11 +52,16 @@ Add `--install` to copy directly to `~/.nanobot/workspace/skills/`.
 
 ## API Key Management
 
-Generated skills load API keys from `~/.nanobot/workspace/keys.json` at runtime. Use `skillify keys` to manage them.
+Skillify stores all API keys in `~/.nanobot/workspace/keys.json`. This includes both:
+- **LLM keys** used by skillify itself for AI-aided discovery and generation (e.g., `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`)
+- **Service keys** used by generated skills at runtime (e.g., `YUTORI_API_KEY`)
+
+Skillify automatically loads stored keys as needed. Environment variables take precedence over stored keys.
 
 ### Store a key
 
 ```bash
+skillify keys set OPENROUTER_API_KEY "sk-or-v1-..."
 skillify keys set YUTORI_API_KEY "yt_abc123..."
 ```
 

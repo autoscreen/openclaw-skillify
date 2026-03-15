@@ -10,7 +10,18 @@ from litellm import acompletion
 
 T = TypeVar("T", bound=BaseModel)
 
-DEFAULT_MODEL = "openrouter/anthropic/claude-sonnet-4-5"
+DEFAULT_MODEL = "anthropic/claude-sonnet-4-5"
+
+# API key env vars that litellm recognises, mapped to the key name
+# we store in keys.json.
+_KEY_ENV_VARS = [
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "OPENROUTER_API_KEY",
+    "GEMINI_API_KEY",
+    "DEEPSEEK_API_KEY",
+    "GROQ_API_KEY",
+]
 
 
 def _resolve_model(model: str | None = None) -> str:
@@ -23,10 +34,25 @@ def _resolve_model(model: str | None = None) -> str:
     )
 
 
+def _load_api_keys_from_store() -> None:
+    """Populate environment with API keys from keys.json.
+
+    Only sets a variable if it isn't already present in the environment,
+    so explicit env vars always take precedence.
+    """
+    from skillify.keys import _load
+
+    stored = _load()
+    for env_var in _KEY_ENV_VARS:
+        if env_var not in os.environ and env_var in stored:
+            os.environ[env_var] = stored[env_var]
+
+
 class SkillifyLLM:
     """Thin wrapper around litellm for skillify's AI-aided steps."""
 
     def __init__(self, model: str | None = None):
+        _load_api_keys_from_store()
         self.model = _resolve_model(model)
         litellm.suppress_debug_info = True
         litellm.drop_params = True
