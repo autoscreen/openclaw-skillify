@@ -407,17 +407,33 @@ def _infer_api_name_from_url(source: str) -> str | None:
 
 
 def _infer_base_url_from_source(source: str) -> str | None:
-    """Infer a base URL from the source URL by stripping the spec filename."""
+    """Infer a base URL from the source URL by stripping the spec filename.
+
+    If the host looks like a docs domain (e.g. docs.example.com), rewrite
+    to api.example.com since API specs hosted on docs sites almost always
+    serve requests from a separate api subdomain.
+    """
     if not source.startswith(("http://", "https://")):
         return None
     parsed = urlparse(source)
+    hostname = parsed.hostname or ""
     path = parsed.path
     if "/" in path and path != "/":
         last_segment = path.rsplit("/", 1)[-1].lower()
         if any(last_segment.endswith(ext) for ext in (".json", ".yaml", ".yml")):
             path = path.rsplit("/", 1)[0]
-    base = f"{parsed.scheme}://{parsed.netloc}{path}"
-    return base.rstrip("/") or f"{parsed.scheme}://{parsed.netloc}"
+
+    # Rewrite docs.X.Y → api.X.Y
+    if hostname.startswith("docs."):
+        hostname = "api." + hostname[5:]
+        netloc = hostname
+        if parsed.port:
+            netloc += f":{parsed.port}"
+    else:
+        netloc = parsed.netloc
+
+    base = f"{parsed.scheme}://{netloc}{path}"
+    return base.rstrip("/") or f"{parsed.scheme}://{netloc}"
 
 
 _GENERIC_SCHEME_NAMES = frozenset({
